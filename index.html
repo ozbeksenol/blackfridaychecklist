@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İnteraktif Black Friday Kontrol Listesi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chosen Palette: Professional Calm -->
+    <!-- Application Structure Plan: The application transforms the static checklist into a dynamic, interactive tool. It retains the original 5-phase chronological structure, as this is the most logical flow for the user. The core design is an accordion-style interface where each phase is a collapsible card. This allows the user to focus on one phase at a time, reducing cognitive load. Key interactions include toggling phases to view tasks and checking off tasks. Checking a task updates both a phase-specific progress bar and an overall progress bar at the top, providing immediate visual feedback and a sense of accomplishment. This structure was chosen because it turns a passive document into an active project management tool, enhancing usability and engagement. -->
+    <!-- Visualization & Content Choices: Report Info: The source is a 5-phase checklist for Black Friday prep. Goal: Organize and track progress. Viz/Presentation Method: The primary visualization is not a chart but an interactive progress bar (implemented with styled HTML divs). The main content is organized into accordion cards using HTML and Tailwind CSS. Interaction: Clicking a phase header expands/collapses its task list. Clicking a task's checkbox updates its state and recalculates/updates the corresponding phase and overall progress bars via JavaScript. Justification: Since the source material is a procedural checklist with no quantitative data, traditional charts are irrelevant. Progress bars and interactive checkboxes are the most effective way to visualize completion and make the checklist functional and engaging. Library/Method: Vanilla JavaScript for all interactivity and DOM manipulation. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .task-item.completed label {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+        .progress-bar-fill {
+            transition: width 0.3s ease-in-out;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+        }
+        .accordion-item.open .accordion-content {
+            max-height: 1000px;
+        }
+        .accordion-item.open .accordion-arrow {
+            transform: rotate(180deg);
+        }
+        .accordion-arrow {
+            transition: transform 0.3s ease-in-out;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto max-w-4xl p-4 sm:p-6 md:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">Black Friday Hazırlık Listesi</h1>
+            <p class="text-slate-600">Kampanya hazırlık sürecinizi interaktif olarak takip edin ve yönetin.</p>
+        </header>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="font-semibold text-slate-700">Genel İlerleme</h2>
+                <span id="overall-progress-text" class="font-bold text-slate-900">0%</span>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-4">
+                <div id="overall-progress-bar" class="bg-indigo-600 h-4 rounded-full progress-bar-fill" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <main id="checklist-container" class="space-y-4">
+        </main>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const storageKey = 'blackFridayChecklistState';
+
+            let checklistData = [
+                {
+                    phase: "Faz 1: Strateji ve Planlama",
+                    timeline: "Kampanyadan 4 Hafta Önce",
+                    description: "Bu dönem, kampanyanın temelini oluşturacağınız en kritik aşamadır.",
+                    tasks: [
+                        { id: 't1_1', text: "Bir önceki yılın Black Friday satış verilerini analiz et.", completed: false },
+                        { id: 't1_2', text: "En çok satan ürünleri ve kategorileri belirle.", completed: false },
+                        { id: 't1_3', text: "Hangi pazarlama kanallarının en yüksek getiriyi sağladığını tespit et.", completed: false },
+                        { id: 't1_4', text: "Müşteri geri bildirimlerini ve yaşanan operasyonel sorunları gözden geçir.", completed: false },
+                        { id: 't1_5', text: "Ciro, sipariş sayısı ve yeni müşteri kazanımı gibi net hedefler koy.", completed: false },
+                        { id: 't1_6', text: "Ortalama sepet tutarını artırmaya yönelik hedefler belirle.", completed: false },
+                        { id: 't1_7', text: "Kampanyanın ana temasını ve sloganını belirle.", completed: false },
+                        { id: 't1_8', text: "Öne çıkarılacak 'kahraman ürünleri' seç.", completed: false },
+                        { id: 't1_9', text: "İndirim oranlarını ve promosyon türlerini belirle.", completed: false },
+                        { id: 't1_10', text: "Saatlik veya günlük 'Flaş İndirimler' planla.", completed: false },
+                        { id: 't1_11', text: "Reklam ve pazarlama araçları için bütçeyi ayır.", completed: false },
+                        { id: 't1_12', text: "Satış hedeflerine göre ürün stoklarını planla ve siparişleri ver.", completed: false },
+                        { id: 't1_13', text: "Paketleme ve ambalaj malzemesi stoğunu kontrol et.", completed: false }
+                    ]
+                },
+                {
+                    phase: "Faz 2: Pazarlama ve Site Hazırlığı",
+                    timeline: "Kampanyadan 3-4 Hafta Önce",
+                    description: "Artık stratejinizi hayata geçirme zamanı.",
+                    tasks: [
+                        { id: 't2_1', text: "Ana sayfa banner'ı, pop-up'lar ve kategori görsellerini tasarla.", completed: false },
+                        { id: 't2_2', text: "Özel bir 'Black Friday' kampanya sayfası (landing page) oluştur.", completed: false },
+                        { id: 't2_3', text: "Ürün sayfalarını kampanya için optimize et.", completed: false },
+                        { id: 't2_4', text: "Web sitesi hızını ve mobil uyumluluğunu test et.", completed: false },
+                        { id: 't2_5', text: "Ödeme ve sepet adımlarının sorunsuz çalıştığını tekrar kontrol et.", completed: false },
+                        { id: 't2_6', text: "E-posta pazarlama metinlerini ve tasarımlarını hazırla.", completed: false },
+                        { id: 't2_7', text: "Sosyal medya içerik takvimini oluştur.", completed: false },
+                        { id: 't2_8', text: "Google Ads ve sosyal medya reklam metin/görsellerini hazırla.", completed: false },
+                        { id: 't2_9', text: "Blog yazıları veya hediye rehberleri gibi destekleyici içerikler üret.", completed: false }
+                    ]
+                },
+                {
+                    phase: "Faz 3: Operasyon ve Son Kontroller",
+                    timeline: "Kampanyadan 1-2 Hafta Önce",
+                    description: "Sistemin sorunsuz işlemesi için operasyonel hazırlıkları tamamlama zamanı.",
+                    tasks: [
+                        { id: 't3_1', text: "Müşteri hizmetleri ekibini kampanya detayları hakkında bilgilendir.", completed: false },
+                        { id: 't3_2', text: "Yoğunluğa karşı ek personel veya mesai planlaması yap.", completed: false },
+                        { id: 't3_3', text: "Sıkça Sorulan Sorular (SSS) sayfasını kampanya özelinde güncelle.", completed: false },
+                        { id: 't3_4', text: "Gelen ürünlerin kalite kontrolünü yap ve depoya yerleştir.", completed: false },
+                        { id: 't3_5', text: "Sipariş paketleme alanını düzenle ve verimli hale getir.", completed: false },
+                        { id: 't3_6', text: "Kargo firmasıyla yoğun dönem gönderi kapasitelerini teyit et.", completed: false },
+                        { id: 't3_7', text: "Web sitesinde tam bir yük testi (stress test) gerçekleştir.", completed: false },
+                        { id: 't3_8', text: "Tüm indirimlerin ve kupon kodlarının test ortamında çalıştığını kontrol et.", completed: false },
+                        { id: 't3_9', text: "Analiz ve takip kodlarının (Google Analytics, Pixel vb.) çalıştığından emin ol.", completed: false }
+                    ]
+                },
+                {
+                    phase: "Faz 4: Kampanya Başlangıcı ve Yönetimi",
+                    timeline: "Kampanya Haftası",
+                    description: "Büyük gün geldi! Sakin kalıp planı uygulama zamanı.",
+                    tasks: [
+                        { id: 't4_1', text: "İndirimleri ve promosyonları sistemde aktifleştir.", completed: false },
+                        { id: 't4_2', text: "Web sitesindeki tüm kampanya görsellerini yayına al.", completed: false },
+                        { id: 't4_3', text: "Planlanan ilk e-posta ve sosyal medya duyurularını gönder.", completed: false },
+                        { id: 't4_4', text: "Tüm dijital reklam kampanyalarını başlat.", completed: false },
+                        { id: 't4_5', text: "Site trafiğini ve sunucu performansını anlık olarak izle.", completed: false },
+                        { id: 't4_6', text: "Satışları ve stok durumunu yakından takip et.", completed: false },
+                        { id: 't4_7', text: "Reklam kampanyalarının performansını izle ve anlık optimizasyonlar yap.", completed: false },
+                        { id: 't4_8', text: "Sosyal medyadan gelen yorum ve mesajlara hızlıca yanıt ver.", completed: false }
+                    ]
+                },
+                {
+                    phase: "Faz 5: Kampanya Sonrası",
+                    timeline: "Kampanyayı Takip Eden Hafta",
+                    description: "Müşteri memnuniyetini sağlamak ve gelecek için ders çıkarmak çok önemli.",
+                    tasks: [
+                        { id: 't5_1', text: "Tüm siparişlerin en hızlı şekilde paketlenip kargoya verilmesini sağla.", completed: false },
+                        { id: 't5_2', text: "Müşterilere kargo takip numaralarını zamanında ilet.", completed: false },
+                        { id: 't5_3', text: "İade ve değişim taleplerini hızlı ve sorunsuz bir şekilde yönet.", completed: false },
+                        { id: 't5_4', text: "Müşteri memnuniyetini ölçmek için bir anket gönder.", completed: false },
+                        { id: 't5_5', text: "Kampanya hedeflerine ne kadar ulaşıldığını analiz et.", completed: false },
+                        { id: 't5_6', text: "Hangi ürünlerin ve kampanyaların en başarılı olduğunu raporla.", completed: false },
+                        { id: 't5_7', text: "Pazarlama kanallarının yatırım getirisini (ROI) hesapla.", completed: false },
+                        { id: 't5_8', text: "Yaşanan sorunları ve başarıları belgeleyerek bir 'öğrenimler' raporu oluştur.", completed: false }
+                    ]
+                }
+            ];
+            
+            function saveState() {
+                localStorage.setItem(storageKey, JSON.stringify(checklistData));
+            }
+
+            function loadState() {
+                const savedDataJSON = localStorage.getItem(storageKey);
+                if (savedDataJSON) {
+                    try {
+                        const savedData = JSON.parse(savedDataJSON);
+                        checklistData.forEach((phase, phaseIndex) => {
+                            if (savedData[phaseIndex] && Array.isArray(savedData[phaseIndex].tasks)) {
+                                phase.tasks.forEach((task, taskIndex) => {
+                                    if (savedData[phaseIndex].tasks[taskIndex] && typeof savedData[phaseIndex].tasks[taskIndex].completed === 'boolean') {
+                                        task.completed = savedData[phaseIndex].tasks[taskIndex].completed;
+                                    }
+                                });
+                            }
+                        });
+                    } catch (e) {
+                        console.error("Kaydedilmiş kontrol listesi verileri ayrıştırılırken hata oluştu:", e);
+                        localStorage.removeItem(storageKey);
+                    }
+                }
+            }
+
+            const container = document.getElementById('checklist-container');
+            if (!container) return;
+            
+            loadState();
+
+            function renderChecklist() {
+                container.innerHTML = '';
+                checklistData.forEach((phaseData, phaseIndex) => {
+                    const phaseId = `phase-${phaseIndex}`;
+                    const accordionItem = document.createElement('div');
+                    accordionItem.className = 'accordion-item bg-white rounded-xl shadow-md overflow-hidden';
+
+                    const tasksHtml = phaseData.tasks.map((task, taskIndex) => `
+                        <li class="task-item py-3 px-4 flex items-center border-b border-slate-100 last:border-b-0 ${task.completed ? 'completed' : ''}" data-phase-index="${phaseIndex}" data-task-index="${taskIndex}">
+                            <input type="checkbox" id="${task.id}" class="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" ${task.completed ? 'checked' : ''}>
+                            <label for="${task.id}" class="ml-3 text-slate-700 w-full cursor-pointer">${task.text}</label>
+                        </li>
+                    `).join('');
+
+                    accordionItem.innerHTML = `
+                        <div class="accordion-header p-4 sm:p-5 cursor-pointer" role="button" aria-expanded="false" aria-controls="${phaseId}-content">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h3 class="font-bold text-lg text-slate-900">${phaseData.phase}</h3>
+                                    <p class="text-sm text-slate-500">${phaseData.timeline}</p>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                     <span id="${phaseId}-progress-text" class="text-sm font-semibold text-slate-600 w-10 text-right">0%</span>
+                                     <span class="accordion-arrow text-slate-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                          <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                                        </svg>
+                                     </span>
+                                </div>
+                            </div>
+                             <div class="w-full bg-slate-200 rounded-full h-2 mt-3">
+                                <div id="${phaseId}-progress-bar" class="bg-indigo-500 h-2 rounded-full progress-bar-fill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div id="${phaseId}-content" class="accordion-content bg-slate-50">
+                            <p class="px-4 pt-4 pb-2 text-sm text-slate-600">${phaseData.description}</p>
+                            <ul class="divide-y divide-slate-200">${tasksHtml}</ul>
+                        </div>
+                    `;
+                    container.appendChild(accordionItem);
+                });
+                updateAllProgress();
+                addEventListeners();
+            }
+
+            function addEventListeners() {
+                document.querySelectorAll('.accordion-header').forEach(header => {
+                    header.addEventListener('click', () => {
+                        const item = header.parentElement;
+                        item.classList.toggle('open');
+                    });
+                });
+
+                document.querySelectorAll('.task-item input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', (e) => {
+                        const listItem = e.target.closest('.task-item');
+                        const phaseIndex = listItem.dataset.phaseIndex;
+                        const taskIndex = listItem.dataset.taskIndex;
+                        checklistData[phaseIndex].tasks[taskIndex].completed = e.target.checked;
+                        listItem.classList.toggle('completed', e.target.checked);
+                        updatePhaseProgress(phaseIndex);
+                        updateOverallProgress();
+                        saveState();
+                    });
+                });
+            }
+
+            function updatePhaseProgress(phaseIndex) {
+                const phaseData = checklistData[phaseIndex];
+                const completedTasks = phaseData.tasks.filter(t => t.completed).length;
+                const totalTasks = phaseData.tasks.length;
+                const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+                
+                const phaseId = `phase-${phaseIndex}`;
+                document.getElementById(`${phaseId}-progress-bar`).style.width = `${percentage}%`;
+                document.getElementById(`${phaseId}-progress-text`).textContent = `${percentage}%`;
+            }
+
+            function updateOverallProgress() {
+                let totalTasks = 0;
+                let completedTasks = 0;
+                checklistData.forEach(phase => {
+                    totalTasks += phase.tasks.length;
+                    completedTasks += phase.tasks.filter(t => t.completed).length;
+                });
+                const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                document.getElementById('overall-progress-bar').style.width = `${percentage}%`;
+                document.getElementById('overall-progress-text').textContent = `${percentage}%`;
+            }
+
+            function updateAllProgress() {
+                checklistData.forEach((_, index) => updatePhaseProgress(index));
+                updateOverallProgress();
+            }
+
+            renderChecklist();
+        });
+    </script>
+</body>
+</html>
+
